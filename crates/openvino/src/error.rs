@@ -6,40 +6,40 @@ use thiserror::Error;
 #[allow(missing_docs)]
 #[derive(Debug, Error, PartialEq, Eq)]
 pub enum InferenceError {
-    #[error("general error")]
-    GeneralError,
-    #[error("not implemented")]
-    NotImplemented,
-    #[error("network not loaded")]
-    NetworkNotLoaded,
-    #[error("parameter mismatch")]
-    ParameterMismatch,
-    #[error("not found")]
-    NotFound,
-    #[error("out of bounds")]
-    OutOfBounds,
-    #[error("unexpected")]
-    Unexpected,
-    #[error("request busy")]
-    RequestBusy,
-    #[error("result not ready")]
-    ResultNotReady,
-    #[error("not allocated")]
-    NotAllocated,
-    #[error("infer not started")]
-    InferNotStarted,
-    #[error("network not read")]
-    NetworkNotRead,
-    #[error("infer cancelled")]
-    InferCancelled,
-    #[error("invalid c parameter")]
-    InvalidCParam,
-    #[error("unknown C error")]
-    UnknownCError,
-    #[error("not implemented C method")]
-    NotImplementCMethod,
-    #[error("unknown exception")]
-    UnknownException,
+    #[error("general error: ({message})")]
+    GeneralError { message: String },
+    #[error("not implemented: ({message})")]
+    NotImplemented { message: String },
+    #[error("network not loaded: ({message})")]
+    NetworkNotLoaded { message: String },
+    #[error("parameter mismatch: ({message})")]
+    ParameterMismatch { message: String },
+    #[error("not found: ({message})")]
+    NotFound { message: String },
+    #[error("out of bounds: ({message})")]
+    OutOfBounds { message: String },
+    #[error("unexpected: ({message})")]
+    Unexpected { message: String },
+    #[error("request busy: ({message})")]
+    RequestBusy { message: String },
+    #[error("result not ready: ({message})")]
+    ResultNotReady { message: String },
+    #[error("not allocated: ({message})")]
+    NotAllocated { message: String },
+    #[error("infer not started: ({message})")]
+    InferNotStarted { message: String },
+    #[error("network not read: ({message})")]
+    NetworkNotRead { message: String },
+    #[error("infer cancelled: ({message})")]
+    InferCancelled { message: String },
+    #[error("invalid c parameter: ({message})")]
+    InvalidCParam { message: String },
+    #[error("unknown C error: ({message})")]
+    UnknownCError { message: String },
+    #[error("not implemented C method: ({message})")]
+    NotImplementCMethod { message: String },
+    #[error("unknown exception: ({message})")]
+    UnknownException { message: String },
     #[error("undefined error code: {0}")]
     Undefined(i32),
 }
@@ -51,25 +51,37 @@ impl InferenceError {
     pub fn from(error_code: i32) -> Result<(), InferenceError> {
         #[allow(clippy::enum_glob_use)]
         use InferenceError::*;
+
+        if error_code == openvino_sys::ov_status_e_OK {
+            return Ok(());
+        }
+
+        let message = unsafe {
+            std::ffi::CStr::from_ptr(openvino_sys::ov_get_last_err_msg())
+                .to_string_lossy()
+                .into_owned()
+        };
+
         match error_code {
-            openvino_sys::ov_status_e_OK => Ok(()),
-            openvino_sys::ov_status_e_GENERAL_ERROR => Err(GeneralError),
-            openvino_sys::ov_status_e_NOT_IMPLEMENTED => Err(NotImplemented),
-            openvino_sys::ov_status_e_NETWORK_NOT_LOADED => Err(NetworkNotLoaded),
-            openvino_sys::ov_status_e_PARAMETER_MISMATCH => Err(ParameterMismatch),
-            openvino_sys::ov_status_e_NOT_FOUND => Err(NotFound),
-            openvino_sys::ov_status_e_OUT_OF_BOUNDS => Err(OutOfBounds),
-            openvino_sys::ov_status_e_UNEXPECTED => Err(Unexpected),
-            openvino_sys::ov_status_e_REQUEST_BUSY => Err(RequestBusy),
-            openvino_sys::ov_status_e_RESULT_NOT_READY => Err(ResultNotReady),
-            openvino_sys::ov_status_e_NOT_ALLOCATED => Err(NotAllocated),
-            openvino_sys::ov_status_e_INFER_NOT_STARTED => Err(InferNotStarted),
-            openvino_sys::ov_status_e_NETWORK_NOT_READ => Err(NetworkNotRead),
-            openvino_sys::ov_status_e_INFER_CANCELLED => Err(InferCancelled),
-            openvino_sys::ov_status_e_INVALID_C_PARAM => Err(InvalidCParam),
-            openvino_sys::ov_status_e_UNKNOWN_C_ERROR => Err(UnknownCError),
-            openvino_sys::ov_status_e_NOT_IMPLEMENT_C_METHOD => Err(NotImplementCMethod),
-            openvino_sys::ov_status_e_UNKNOW_EXCEPTION => Err(UnknownException),
+            openvino_sys::ov_status_e_GENERAL_ERROR => Err(GeneralError { message }),
+            openvino_sys::ov_status_e_NOT_IMPLEMENTED => Err(NotImplemented { message }),
+            openvino_sys::ov_status_e_NETWORK_NOT_LOADED => Err(NetworkNotLoaded { message }),
+            openvino_sys::ov_status_e_PARAMETER_MISMATCH => Err(ParameterMismatch { message }),
+            openvino_sys::ov_status_e_NOT_FOUND => Err(NotFound { message }),
+            openvino_sys::ov_status_e_OUT_OF_BOUNDS => Err(OutOfBounds { message }),
+            openvino_sys::ov_status_e_UNEXPECTED => Err(Unexpected { message }),
+            openvino_sys::ov_status_e_REQUEST_BUSY => Err(RequestBusy { message }),
+            openvino_sys::ov_status_e_RESULT_NOT_READY => Err(ResultNotReady { message }),
+            openvino_sys::ov_status_e_NOT_ALLOCATED => Err(NotAllocated { message }),
+            openvino_sys::ov_status_e_INFER_NOT_STARTED => Err(InferNotStarted { message }),
+            openvino_sys::ov_status_e_NETWORK_NOT_READ => Err(NetworkNotRead { message }),
+            openvino_sys::ov_status_e_INFER_CANCELLED => Err(InferCancelled { message }),
+            openvino_sys::ov_status_e_INVALID_C_PARAM => Err(InvalidCParam { message }),
+            openvino_sys::ov_status_e_UNKNOWN_C_ERROR => Err(UnknownCError { message }),
+            openvino_sys::ov_status_e_NOT_IMPLEMENT_C_METHOD => {
+                Err(NotImplementCMethod { message })
+            }
+            openvino_sys::ov_status_e_UNKNOW_EXCEPTION => Err(UnknownException { message }),
             _ => Err(Undefined(error_code)),
         }
     }
